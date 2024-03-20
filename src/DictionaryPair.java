@@ -1,6 +1,5 @@
 /**
  * Creating B+ Tree Index
- * @author: Kam Chin Voon
  */
 public class DictionaryPair implements Comparable<DictionaryPair> {
     int key; // numVotes

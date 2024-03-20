@@ -1,19 +1,8 @@
 /**
  * Running the B+ Tree Index with 100B database storage
- * Experiment 2
- * Experiment 3
- * Experiment 4
- * Experiment 5
- * @author: Bachhas Nikita
- * @author: Kam Chin Voon
  * */
 /**
  * Running the B+ Tree Index with 500B database storage
- * Re-doing Experiment 2
- * Re-doing Experiment 3
- * Re-doing Experiment 4
- * Re-doing Experiment 5
- * @author: Bachhas Nikita
  * */
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -24,7 +13,7 @@ import java.util.ArrayList;
 public class start1 {
 
     public static void main(String[] args) {
-        String path = "data.tsv"; // creating a variable path and storing the filepath
+        String path = "resources/data.tsv"; // creating a variable path and storing the filepath
         String line = ""; // variable to be used later on
         String path1 = "output_100B.txt";
         String line1 = "";

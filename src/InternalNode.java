@@ -1,6 +1,5 @@
 /**
  * Creating B+ Tree Index
- * @author: Kam Chin Voon
  */
 public class InternalNode extends Node { // all nodes that are not leaf nodes
     int maxDegree; // max children -> m

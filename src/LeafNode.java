@@ -1,7 +1,5 @@
 /**
  * Creating B+ Tree Index
- * @author: Kam Chin Voon
- * @author: Bachhas Nikita
  */
 public class LeafNode extends Node {
     private LeafNode next;

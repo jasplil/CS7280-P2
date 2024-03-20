@@ -1,12 +1,5 @@
 /**
  * Running the B+ Tree Index with 100B database storage
- * Experiment 2
- * Experiment 3
- * Experiment 4
- * Experiment 5
- * @author: Kam Chin Voon
- * @author: Bachhas Nikita
- * @author: Koushani Kundu
  * */
 import java.util.ArrayList;
 import java.util.Arrays;

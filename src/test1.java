@@ -1,8 +1,6 @@
 /**
  * Designing and implementing a database storage system of 100B
  * Experiment 1
- * @author: Bachhas Nikita
- * @author: Kam Chin Voon
  * */
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,8 +17,8 @@ import java.lang.String;
 public class test1 {
 
     public static void main(String[] arg) throws IOException {
-
-        BufferedReader TSVFile = new BufferedReader(new FileReader("data.tsv"));
+        String filePath = "resources/data.tsv";
+        BufferedReader TSVFile = new BufferedReader(new FileReader(filePath));
 
         String dataRow = TSVFile.readLine(); // Read first line.
         int remainingSpaces;

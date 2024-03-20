@@ -1,10 +1,4 @@
 /**
- * Running the B+ Tree Index with 500B database storage
- * Re-doing Experiment 2
- * Re-doing Experiment 3
- * Re-doing Experiment 4
- * Re-doing Experiment 5
- * @author: Bachhas Nikita
  * */
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
