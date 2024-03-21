@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class start1 {
-
     public static void main(String[] args) {
         String path = "resources/data.tsv"; // creating a variable path and storing the filepath
         String line = ""; // variable to be used later on
