@@ -10,9 +10,11 @@ import java.util.Random;
 
 public class DB {
     private File DBFile;
+    private int TOTAL_SIZE; // 1 MB
 
     public DB(String filename) {
         DBFile = new File(filename);
+        TOTAL_SIZE = 1_048_576;
         try {
             // Attempt to create the file
             boolean fileCreated = DBFile.createNewFile();
@@ -33,10 +35,9 @@ public class DB {
     public void createDB() throws FileNotFoundException {
         int offset = 0;
         String dbName = "DataBus";
-        int dbSize = 1_048_576; // 1 MB in bytes
 
         ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-        buffer.putInt(dbSize);
+        buffer.putInt(TOTAL_SIZE);
         byte[] sizeBytes = buffer.array();
 
         try {
@@ -57,7 +58,6 @@ public class DB {
             raf.seek(0); // Position the file pointer at the start of the file
             raf.write(headerBlock);
             offset += 20;
-            System.out.println("Offset: " + offset);
             raf.seek(offset);
             raf.write(sizeBytes);
         } catch (IOException e) {

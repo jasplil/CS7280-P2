@@ -16,7 +16,6 @@ import java.lang.String;
 public class test1 {
 
     public static void main(String[] arg) throws IOException {
-
         BufferedReader TSVFile = new BufferedReader(new FileReader("data.tsv"));
 
         String dataRow = TSVFile.readLine(); // Read first line.
