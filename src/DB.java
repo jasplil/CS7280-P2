@@ -2,19 +2,27 @@
 //  2. Use methods in Utils.Block class to allocate and deallocate space
 //  3. Use methods in B+Tree class to store and retrieve data
 
+import Utils.Block;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.List;
 
 public class DB {
     private File DBFile;
     private int TOTAL_SIZE; // 1 MB
+    private Block[] blocks;
 
     public DB(String filename) {
         DBFile = new File(filename);
         TOTAL_SIZE = 1_048_576;
+        // TODO: Change the size later
+        blocks = new Block[300];
+
         try {
             // Attempt to create the file
             boolean fileCreated = DBFile.createNewFile();
@@ -68,17 +76,39 @@ public class DB {
     // TODO: Close - Closes the db connection
     public void close() {}
 
-    // TODO: Read - Reads the next line of data from the db
-    public String read() {
-        // TODO: Look for the key in b+tree
-        return "";
+    public void write() throws IOException {
+        InputStream is = getClass().getResourceAsStream("ratings.csv");
+        BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
+        RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
+
+        int startingByte = 100;
+        int countBlocks = 0;
+        int totalBytes = 0;
+        int itemNumber = 0;
+        String dataRow = csvFile.readLine(); // Read first line.
+        String[] blockArr = new String[] {};
+        List<String> blockArray = new ArrayList<>(Arrays.asList(blockArr));
+
+        for (int i = 0; i < 6; i++) {
+            String[] dataArray = dataRow.split("\t");
+
+            for (String item : dataArray) {
+                blockArray.add(item);
+            }
+
+            dataRow = csvFile.readLine(); // Read next line of data.
+
+            raf.seek(startingByte);
+            for (String str : blockArray) {
+                System.out.print(str + " "); // Print the data.
+                raf.writeUTF(str); // Write the data to the file.
+            }
+        }
     }
 
-    // TODO: Write - Writes the given data to the db
-    public void write(String data) {
-        // TODO: Reserve space for the header
-        // TODO: Write the data to the block
-
+    // TODO: Read - Reads the next line of data from the db
+    public String search() {
+        return "";
     }
 
     // TODO: Delete - Deletes the given data from the db

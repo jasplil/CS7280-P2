@@ -4,14 +4,16 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 
 public class testDB {
+    DB db;
     @Before
     public void setUp() throws FileNotFoundException {
-        DB db = new DB("test.db0");
+        db = new DB("test.db0");
         db.createDB();
     }
 
@@ -34,5 +36,10 @@ public class testDB {
         } catch (IOException e) {
             System.err.println("An error occurred while reading the database name: " + e.getMessage());
         }
+    }
+
+    @Test
+    public void testWrite() throws IOException, URISyntaxException {
+        db.write();
     }
 }

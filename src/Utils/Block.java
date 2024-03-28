@@ -1,12 +1,11 @@
 package Utils;
 
 public class Block {
-
     private Block prev;
     private Block next;
     private boolean isAllocated;
 
-    public Block(long filePointer, long blockSize, Block prev, Block next) {
+    public Block(Block prev, Block next) {
         this.prev = prev;
         this.next = next;
     }
