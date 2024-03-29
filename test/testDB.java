@@ -20,19 +20,12 @@ public class testDB {
     @Test
     public void testHeaderBlock() {
         try (RandomAccessFile file = new RandomAccessFile("test.db0", "r")) {
-            String dbName = "DataBus";
-            byte[] bytes = dbName.getBytes(StandardCharsets.UTF_8);
-            file.readFully(bytes); // Read the first 8 bytes where the dbName is supposed to be
-
-            // Convert bytes to String, assuming UTF-8 encoding, and trim it
-            String storedDbName = new String(bytes, StandardCharsets.UTF_8).trim();
-
-            // Find the database size
-            file.seek(20); // Move the file pointer to the end of the database name
-            int dbSize = file.readInt(); // Read the database size
-
-            assertEquals("DataBus", storedDbName);
-            assertEquals(1_048_576, dbSize);
+            file.seek(0);
+            String dbName = file.readUTF();
+            assertEquals("DataBus", dbName);
+            file.seek(50);
+            int totalSize = file.readInt();
+            assertEquals(1_048_576, totalSize);
         } catch (IOException e) {
             System.err.println("An error occurred while reading the database name: " + e.getMessage());
         }

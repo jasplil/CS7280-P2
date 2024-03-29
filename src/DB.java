@@ -4,6 +4,7 @@
 
 import Utils.Block;
 
+import javax.management.relation.RelationNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -11,11 +12,15 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DB {
     private File DBFile;
     private int TOTAL_SIZE; // 1 MB
     private Block[] blocks;
+    String DB_NAME = "DataBus";
+    BPlusTree tree = new BPlusTree(6);
 
     public DB(String filename) {
         DBFile = new File(filename);
@@ -41,73 +46,111 @@ public class DB {
      * Create a new database file. If the file already exists, do nothing.
      */
     public void createDB() throws FileNotFoundException {
-        int offset = 0;
-        String dbName = "DataBus";
-
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-        buffer.putInt(TOTAL_SIZE);
-        byte[] sizeBytes = buffer.array();
+        ReentrantLock lock = new ReentrantLock();
 
         try {
             RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
             // Ensure that the database name does not exceed the allocated space
-            byte[] dbNameBytes = dbName.getBytes(StandardCharsets.UTF_8);
-            if (dbNameBytes.length > 50) {
-                // If longer, truncate the database name to fit the allocated space
-                dbNameBytes = Arrays.copyOf(dbNameBytes, 50);
+            lock.lock(); // Acquire the lock
+            try {
+                int offset = 0;
+                insertMetadata(raf, offset); // First operation
+                insertFCB(raf, 80);      // Second operation
+            } finally {
+                lock.unlock(); // Ensure the lock is always released
             }
-
-            // Prepare a header block with the specified size, initially filled with zeros
-            byte[] headerBlock = new byte[256];
-            // Copy the database name into the beginning of the header block
-            System.arraycopy(dbNameBytes, 0, headerBlock, 0, dbNameBytes.length);
-
-            // Write the header block to the beginning of the file
-            raf.seek(0); // Position the file pointer at the start of the file
-            raf.write(headerBlock);
-            offset += 20;
-            raf.seek(offset);
-            raf.write(sizeBytes);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    public void insertMetadata(RandomAccessFile raf, int offset) throws IOException {
+        // DB_NAME
+        raf.seek(0);
+        raf.writeUTF(DB_NAME);
+        offset += 50;
+        raf.seek(offset);
+        // TOTAL_SIZE
+        raf.writeInt(TOTAL_SIZE);
+        offset += 9;
+        raf.seek(offset);
+        // # PFS
+        raf.writeInt(2);
+        offset += 2;
+        raf.seek(offset);
+        // Block size
+        raf.writeInt(256);
+        offset += 10;
+        raf.seek(offset);
+        raf.writeInt(1);
+        // 71 bytes
+    }
+
+    public void insertFCB(RandomAccessFile raf, int offset) throws IOException {
+        raf.seek(offset);
+        raf.writeInt(1);
+        raf.seek(offset + 3);
+        raf.writeInt(256);
+        raf.writeInt(1);
+    }
+
     // TODO: Close - Closes the db connection
-    public void close() {}
+    public void close() {
+        // Close the file
+    }
 
     public void write() throws IOException {
-        InputStream is = getClass().getResourceAsStream("ratings.csv");
+        InputStream is = getClass().getResourceAsStream("movies.csv");
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
         RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
 
-        int startingByte = 100;
-        int countBlocks = 0;
-        int totalBytes = 0;
-        int itemNumber = 0;
+        int startingByte = 256 * 3 + 1;
         String dataRow = csvFile.readLine(); // Read first line.
-        String[] blockArr = new String[] {};
-        List<String> blockArray = new ArrayList<>(Arrays.asList(blockArr));
-
-        for (int i = 0; i < 6; i++) {
-            String[] dataArray = dataRow.split("\t");
-
-            for (String item : dataArray) {
-                blockArray.add(item);
+        dataRow = csvFile.readLine(); // Read second line.
+        int totalBytes = 256;
+        raf.seek(startingByte);
+        for (int i = 0; i < 6 && dataRow != null; i++) {
+            int byteLength = dataRow.getBytes().length;
+            if (byteLength > 40) {
+                dataRow = truncateString(dataRow);
             }
-
+            raf.writeUTF(dataRow);
+            int index = Integer.parseInt(dataRow.split(",")[0]);
+            tree.insert(index, startingByte);
+            // IMPORTANT: Update startingByte for next write, considering the length of the UTF string (dataRow) and 2 bytes for length
+            startingByte += dataRow.getBytes(StandardCharsets.UTF_8).length + 2;
+            System.out.println("Index: " + index + " | Byte: " + startingByte);
             dataRow = csvFile.readLine(); // Read next line of data.
+        }
 
-            raf.seek(startingByte);
-            for (String str : blockArray) {
-                System.out.print(str + " "); // Print the data.
-                raf.writeUTF(str); // Write the data to the file.
+        int numBlocks = (int) Math.ceil(tree.search(2));
+        RandomAccessFile file = new RandomAccessFile(DBFile, "r");
+        System.out.println("Number of blocks: " + numBlocks);
+        file.seek(numBlocks);
+        String data = file.readUTF();
+        System.out.println(data);
+    }
+
+    public static String truncateString(String str) {
+        byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
+        if (strBytes.length > 40) {
+            // Find the maximum length in characters that fits within maxSizeInBytes
+            int newLength = 40;
+            while (newLength > 0) {
+                String substring = new String(strBytes, 0, newLength, StandardCharsets.UTF_8);
+                if (substring.getBytes(StandardCharsets.UTF_8).length <= 40) {
+                    return substring;
+                }
+                newLength--;
             }
         }
+        return str; // Return the original string if it doesn't exceed the size limit
     }
 
     // TODO: Read - Reads the next line of data from the db
     public String search() {
+        // TODO: search the data from the b+tree
+
         return "";
     }
 
