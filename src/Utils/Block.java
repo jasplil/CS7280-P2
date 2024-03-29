@@ -1,14 +1,15 @@
 package Utils;
 
-public class Block {
+import java.util.List;
 
-    private Block prev;
-    private Block next;
+public class Block {
+    final int SIZE = 256;
+    private String[] data;
     private boolean isAllocated;
 
-    public Block(long filePointer, long blockSize, Block prev, Block next) {
-        this.prev = prev;
-        this.next = next;
+    public Block() {
+        data = new String[SIZE];
+        this.isAllocated = false;
     }
 
     public boolean isAllocated() {
@@ -17,21 +18,5 @@ public class Block {
 
     public void setAllocated(boolean allocated) {
         isAllocated = allocated;
-    }
-
-    public Block getNext() {
-        return next;
-    }
-
-    public void setNext(Block next) {
-        this.next = next;
-    }
-
-    public Block getPrev() {
-        return prev;
-    }
-
-    public void setPrev(Block prev) {
-        this.prev = prev;
     }
 }
