@@ -21,7 +21,7 @@ public class testDB {
         try (RandomAccessFile file = new RandomAccessFile("test.db0", "r")) {
             file.seek(0);
             String dbName = file.readUTF();
-            assertEquals("DataBus", dbName);
+            assertEquals("MoviesDB", dbName);
             file.seek(50);
             int totalSize = file.readInt();
             assertEquals(1_048_576, totalSize);
