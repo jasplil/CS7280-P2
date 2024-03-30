@@ -25,7 +25,7 @@ public class DB {
     public DB(String filename) {
         DBFile = new File(filename);
         TOTAL_SIZE = 1_048_576;
-        // TODO: Change the size later
+        // TODO: db extension: db1, db2, db3, ...
         blocks = new Block[300];
 
         try {
@@ -53,9 +53,15 @@ public class DB {
             // Ensure that the database name does not exceed the allocated space
             lock.lock(); // Acquire the lock
             try {
+                // physical address
                 int offset = 0;
+                // TODO: complete insertMetadata
                 insertMetadata(raf, offset); // First operation
+                // TODO: complete insertFCB method
                 insertFCB(raf, 80);      // Second operation
+                // TODO: complete insertBitmap method
+                // 3rd operation
+                // bitmap
             } finally {
                 lock.unlock(); // Ensure the lock is always released
             }
@@ -94,11 +100,7 @@ public class DB {
         raf.writeInt(1);
     }
 
-    // TODO: Close - Closes the db connection
-    public void close() {
-        // Close the file
-    }
-
+    //
     public void write() throws IOException {
         InputStream is = getClass().getResourceAsStream("movies.csv");
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
@@ -115,17 +117,22 @@ public class DB {
                 dataRow = truncateString(dataRow);
             }
             raf.writeUTF(dataRow);
+            // 1. Toy Story (1995) -> 1, Toy Story (1995)
             int index = Integer.parseInt(dataRow.split(",")[0]);
+            // TODO: write b+tree to file
+            // TODO: convert the tree node to byte array
             tree.insert(index, startingByte);
             // IMPORTANT: Update startingByte for next write, considering the length of the UTF string (dataRow) and 2 bytes for length
             startingByte += dataRow.getBytes(StandardCharsets.UTF_8).length + 2;
-            System.out.println("Index: " + index + " | Byte: " + startingByte);
+            System.out.println("Index: " + index+1 + " | Byte: " + startingByte);
             dataRow = csvFile.readLine(); // Read next line of data.
         }
 
-        int numBlocks = (int) Math.ceil(tree.search(2));
+        // TODO: move to writeBTreeToFile
+        // Search the data from the file
+        int numBlocks = (int) Math.ceil(tree.search(6));
         RandomAccessFile file = new RandomAccessFile(DBFile, "r");
-        System.out.println("Number of blocks: " + numBlocks);
+        System.out.println("Address: " + numBlocks);
         file.seek(numBlocks);
         String data = file.readUTF();
         System.out.println(data);
@@ -147,6 +154,10 @@ public class DB {
         return str; // Return the original string if it doesn't exceed the size limit
     }
 
+    // TODO: Write - Writes the btree to the end of file
+    // Convert the tree node to byte array
+    public void writeBTreeToFile() {}
+
     // TODO: Read - Reads the next line of data from the db
     public String search() {
         // TODO: search the data from the b+tree
@@ -159,5 +170,10 @@ public class DB {
         // TODO: delete the data from the b+tree
 
         // TODO: delete the records from block and free the space
+    }
+
+    // TODO: Close - Closes the db connection
+    public void close() {
+        // Close the file
     }
 }
