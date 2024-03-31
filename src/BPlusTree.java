@@ -1,8 +1,9 @@
 // Searching on a B+ tree in Java
 
+import java.io.*;
 import java.util.*;
 
-public class BPlusTree {
+public class BPlusTree implements Serializable {
     int m;
     InternalNode root;
     LeafNode firstLeaf;
@@ -386,7 +387,7 @@ public class BPlusTree {
         this.root = null;
     }
 
-    public class Node {
+    public class Node implements Serializable {
         InternalNode parent;
     }
 
@@ -538,7 +539,7 @@ public class BPlusTree {
         }
     }
 
-    public class DictionaryPair implements Comparable<DictionaryPair> {
+    public class DictionaryPair implements Comparable<DictionaryPair>, Serializable  {
         int key;
         double value;
 
@@ -558,57 +559,85 @@ public class BPlusTree {
         }
     }
 
-    public String serialize() {
-        StringBuilder sb = new StringBuilder();
-        dfs(root, sb);
-        return sb.toString();
+    public void printTree() {
+        printNode(root, "", true);
     }
 
-    public void dfs(Node node, StringBuilder sb) {
-        if (node instanceof LeafNode) {
-            LeafNode leaf = (LeafNode) node;
-            sb.append("L");
-            sb.append(" ");
-            sb.append(leaf.numPairs);
-            sb.append(" ");
-            for (int i = 0; i < leaf.numPairs; i++) {
-                sb.append(leaf.dictionary[i].key);
-                sb.append(" ");
-                sb.append(leaf.dictionary[i].value);
-                sb.append(" ");
-            }
-            sb.append("\n");
+    private void printNode(Node node, String indent, boolean last) {
+        if (node == null) {
+            return;
+        }
+
+        System.out.print(indent);
+        if (last) {
+            System.out.print("└── ");
+            indent += "    ";
         } else {
-            InternalNode internal = (InternalNode) node;
-            sb.append("I");
-            sb.append(" ");
-            sb.append(internal.degree);
-            sb.append(" ");
-            for (int i = 0; i < internal.degree; i++) {
-                sb.append(internal.keys[i]);
-                sb.append(" ");
+            System.out.print("├── ");
+            indent += "|   ";
+        }
+
+        if (node instanceof InternalNode) {
+            InternalNode internalNode = (InternalNode) node;
+            System.out.println("InternalNode with " + internalNode.degree + " children and keys: " + Arrays.toString(internalNode.keys));
+            for (int i = 0; i < internalNode.degree; i++) {
+                printNode(internalNode.childPointers[i], indent, i == internalNode.degree - 1);
             }
-            sb.append("\n");
-            for (int i = 0; i < internal.degree; i++) {
-                dfs(internal.childPointers[i], sb);
+        } else if (node instanceof LeafNode) {
+            LeafNode leafNode = (LeafNode) node;
+            System.out.print("LeafNode with keys: ");
+            for (DictionaryPair dp : leafNode.dictionary) {
+                if (dp != null) {
+                    System.out.print(dp.key + " ");
+                }
             }
+            System.out.println(); // Move to the next line after printing all keys in the leaf
+        }
+    }
+
+    public static void writeBPlusTreeToFile(BPlusTree tree, String filePath) {
+        try (FileOutputStream fileOutputStream = new FileOutputStream(filePath);
+             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)) {
+            objectOutputStream.writeObject(tree);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static BPlusTree readBPlusTreeFromFile(String filePath) {
+        try (FileInputStream fileInputStream = new FileInputStream(filePath);
+             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream)) {
+            return (BPlusTree) objectInputStream.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
     public static void main(String[] args) {
-        BPlusTree bpt = null;
-        bpt = new BPlusTree(6);
-        bpt.insert(1, 809);
-        bpt.insert(2, 849);
-        bpt.insert(3, 889);
-        bpt.insert(4, 41);
-        bpt.insert(5, 10);
+        BPlusTree tree = null;
+        tree = new BPlusTree(6);
+        tree.insert(5, 1);
+        tree.insert(18, 12);
+        tree.insert(8, 36);
+        tree.insert(15, 3);
+        tree.insert(10, 38);
 
-        if (bpt.search(3) != null) {
-            System.out.println("Found");
-        } else {
-            System.out.println("Not Found");
-        }
+        tree.insert(16, 35);
+        tree.insert(17, 6);
+
+        tree.insert(20, 12);
+
+        String filePath = "bplustree.db1";
+        writeBPlusTreeToFile(tree, filePath);
+        BPlusTree deserializedTree = readBPlusTreeFromFile(filePath);
+
+        deserializedTree.printTree();
+//        if (bpt.search(3) != null) {
+//            System.out.println("Found");
+//        } else {
+//            System.out.println("Not Found");
+//        }
         ;
     }
 }
