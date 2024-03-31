@@ -7,7 +7,6 @@ public class BPlusTree {
     InternalNode root;
     LeafNode firstLeaf;
 
-    // Binary search program
     private int binarySearch(DictionaryPair[] dps, int numPairs, int t) {
         Comparator<DictionaryPair> c = new Comparator<DictionaryPair>() {
             @Override
@@ -555,6 +554,43 @@ public class BPlusTree {
                 return 1;
             } else {
                 return -1;
+            }
+        }
+    }
+
+    public String serialize() {
+        StringBuilder sb = new StringBuilder();
+        dfs(root, sb);
+        return sb.toString();
+    }
+
+    public void dfs(Node node, StringBuilder sb) {
+        if (node instanceof LeafNode) {
+            LeafNode leaf = (LeafNode) node;
+            sb.append("L");
+            sb.append(" ");
+            sb.append(leaf.numPairs);
+            sb.append(" ");
+            for (int i = 0; i < leaf.numPairs; i++) {
+                sb.append(leaf.dictionary[i].key);
+                sb.append(" ");
+                sb.append(leaf.dictionary[i].value);
+                sb.append(" ");
+            }
+            sb.append("\n");
+        } else {
+            InternalNode internal = (InternalNode) node;
+            sb.append("I");
+            sb.append(" ");
+            sb.append(internal.degree);
+            sb.append(" ");
+            for (int i = 0; i < internal.degree; i++) {
+                sb.append(internal.keys[i]);
+                sb.append(" ");
+            }
+            sb.append("\n");
+            for (int i = 0; i < internal.degree; i++) {
+                dfs(internal.childPointers[i], sb);
             }
         }
     }
