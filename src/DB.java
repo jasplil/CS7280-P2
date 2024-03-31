@@ -18,8 +18,9 @@ import java.util.concurrent.locks.ReentrantLock;
 public class DB {
     private File DBFile;
     private int TOTAL_SIZE; // 1 MB
+    private String FILE_NAME = "movies.csv";
     private Block[] blocks;
-    String DB_NAME = "DataBus";
+    String DB_NAME = "MoviesDB";
     BPlusTree tree = new BPlusTree(6);
 
     public DB(String filename) {
@@ -58,9 +59,10 @@ public class DB {
                 // TODO: complete insertMetadata
                 insertMetadata(raf, offset); // First operation
                 // TODO: complete insertFCB method
-                insertFCB(raf, 80);      // Second operation
+                insertFCB(raf, 256);      // Second operation
                 // TODO: complete insertBitmap method
                 // 3rd operation
+                insertBitmap(raf, 256 * 2); // Third operation
                 // bitmap
             } finally {
                 lock.unlock(); // Ensure the lock is always released
@@ -71,38 +73,139 @@ public class DB {
     }
 
     public void insertMetadata(RandomAccessFile raf, int offset) throws IOException {
-        // DB_NAME
-        raf.seek(0);
+        // Assuming the offset is 0 at the start.
+        // DB_NAME with padding to 50 bytes
+        raf.seek(offset);
         raf.writeUTF(DB_NAME);
-        offset += 50;
+        int bytesForName = 2 + DB_NAME.length(); // 2 bytes for UTF length
+        padWithBytes(raf, 50 - bytesForName);
+
+        offset += 50; // Now the offset is increased by the allocated space for DB_NAME
         raf.seek(offset);
-        // TOTAL_SIZE
+
+        // TOTAL_SIZE is use 4 bytes, total_size = 1_048_576
         raf.writeInt(TOTAL_SIZE);
-        offset += 9;
+
+        offset += 4; // TOTAL_SIZE + padding
         raf.seek(offset);
-        // # PFS
-        raf.writeInt(2);
-        offset += 2;
-        raf.seek(offset);
-        // Block size
-        raf.writeInt(256);
-        offset += 10;
-        raf.seek(offset);
+
+        // # PFS with padding to 4 bytes (already an int, no padding needed if we're just writing the int)
         raf.writeInt(1);
-        // 71 bytes
+
+        offset += 4; // # PFS
+        raf.seek(offset);
+
+        // Block size with padding to 4 bytes (already an int, no padding needed if we're just writing the int)
+        raf.writeInt(256);
+
+        offset += 4; // Block size
+        raf.seek(offset);
+
+        // # of uploaded csv files with padding to 4 bytes (already an int, no padding needed if we're just writing the int)
+        raf.writeInt(1);
+
+        offset += 4; // # of uploaded csv files
+        raf.seek(offset); // Now at 66 bytes, but if you want to pad this to 256 as well
+        padWithBytes(raf, 256 - offset);
     }
 
+    // Helper method to write padding bytes
+    private void padWithBytes(RandomAccessFile raf, int numberOfBytes) throws IOException {
+        for (int i = 0; i < numberOfBytes; i++) {
+            raf.writeByte(0);
+        }
+    }
+
+
     public void insertFCB(RandomAccessFile raf, int offset) throws IOException {
+        raf.seek(offset); // Move to the correct start position, which is 256
+
+        // File Name with padding to 50 bytes
+        raf.writeUTF(FILE_NAME);
+        int bytesForName = 2 + FILE_NAME.length(); // 2 bytes for UTF length
+        padWithBytes(raf, 50 - bytesForName);
+
+        offset += 50; // Now the offset is increased by the allocated space for DB_NAME
         raf.seek(offset);
-        raf.writeInt(1);
-        raf.seek(offset + 3);
-        raf.writeInt(256);
-        raf.writeInt(1);
+
+        //File Size: fileSizeInBytes
+        long fileSizeInBytes = calculateFileSize();
+        raf.writeLong(fileSizeInBytes);
+        offset += 8; // File Size
+        raf.seek(offset);
+
+        // Date and time: date and time when the file was uploaded
+        raf.writeUTF("2024-03-22, 23:59:59");
+        offset += 20; // Date and time
+        raf.seek(offset);
+
+        // Starting block(location of first data block): 4 bytes
+        raf.writeInt(256 * 3); // 256 * 3 + 1
+        offset += 4;
+        raf.seek(offset);
+
+        // ending block(location of last data block): 4 bytes, just assume same as starting block when intializing
+        raf.writeInt(256 * 19999); // 256 * 3 + 1
+        offset += 4;
+        raf.seek(offset);
+        
+        // # number of blocks used: 4 bytes
+        raf.writeInt(6); // 6 blocks used, at the very beginning, three blocks are used for metadata, FCB, and bitmap
+        // 3 blocks are used for the B+ tree, change it later, this is dummy data
+        offset += 4;
+        raf.seek(offset);
+        
+        // starting address of the B+ tree index: 4 bytes
+        raf.writeInt(256 * 20000); // 256 * 3 + 1
+        offset += 4;
+        raf.seek(offset);
+
+
+        // Now, if you want the FCB section to occupy exactly 256 bytes, you'll need to add padding
+        int bytesWritten = 94; // Total bytes actually written for FCB data
+        int paddingSize = 256 - bytesWritten; // Calculate padding needed to reach 256 bytes
+        // Write padding bytes
+        for (int i = 0; i < paddingSize; i++) {
+            raf.writeByte(0); // Using 0 for padding, but you could use another value
+        }
+
+        offset += paddingSize;
+        raf.seek(offset); // Now at 256 bytes, ready for the next operation
+    }
+
+    // helper method to calculate the input csv file size in bytes
+    public long calculateFileSize() {
+        File file = new File(getClass().getResource("/movies.csv").getFile());
+        long fileSizeInBytes = 0;
+        if (file.exists()) {
+            fileSizeInBytes = file.length();
+            System.out.println("File size: " + fileSizeInBytes + " bytes");
+        } else {
+            System.out.println("The inout cvs file does not exist.");
+        }
+        return fileSizeInBytes;
+    }
+
+    // this is based on the movies_large file records, I want to create around 40,000 blocks to store the data
+    public void insertBitmap(RandomAccessFile raf, int offset) throws IOException {
+        // Seek to the offset position where the bitmap starts
+        raf.seek(offset);
+
+        // Each bit in the bitmap represents a block, so we need 5,000 bytes for 40,000 blocks
+        // But since we want the bitmap to be a multiple of 256 bytes, we round up to 5,120 bytes
+        int bitmapSize = 5120; // This is 20 blocks, each block is 256 bytes
+        byte[] bitmapBytes = new byte[bitmapSize]; // Initialized to all zeroes
+
+        // Write the bitmap to the file
+        raf.write(bitmapBytes);
+        offset += bitmapSize;
+        raf.seek(offset);
+        // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
 
     //
     public void write() throws IOException {
-        InputStream is = getClass().getResourceAsStream("movies.csv");
+        InputStream is = getClass().getResourceAsStream(FILE_NAME);
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
         RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
 
