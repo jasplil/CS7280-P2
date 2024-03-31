@@ -61,7 +61,8 @@ public class DB {
                 // TODO: complete insertFCB method
                 insertFCB(raf, 256);      // Second operation
                 // TODO: complete insertBitmap method
-                // 3rd operationm
+                // 3rd operation
+                insertBitmap(raf, 256 * 2); // Third operation
                 // bitmap
             } finally {
                 lock.unlock(); // Ensure the lock is always released
@@ -168,6 +169,8 @@ public class DB {
             raf.writeByte(0); // Using 0 for padding, but you could use another value
         }
 
+        offset += paddingSize;
+        raf.seek(offset); // Now at 256 bytes, ready for the next operation
     }
 
     // helper method to calculate the input csv file size in bytes
@@ -183,11 +186,22 @@ public class DB {
         return fileSizeInBytes;
     }
 
+    // this is based on the movies_large file records, I want to create around 40,000 blocks to store the data
     public void insertBitmap(RandomAccessFile raf, int offset) throws IOException {
+        // Seek to the offset position where the bitmap starts
         raf.seek(offset);
-        raf.writeBoolean(false);
-    }
 
+        // Each bit in the bitmap represents a block, so we need 5,000 bytes for 40,000 blocks
+        // But since we want the bitmap to be a multiple of 256 bytes, we round up to 5,120 bytes
+        int bitmapSize = 5120; // This is 20 blocks, each block is 256 bytes
+        byte[] bitmapBytes = new byte[bitmapSize]; // Initialized to all zeroes
+
+        // Write the bitmap to the file
+        raf.write(bitmapBytes);
+        offset += bitmapSize;
+        raf.seek(offset);
+        // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
+    }
 
     //
     public void write() throws IOException {

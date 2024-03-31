@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URISyntaxException;
+import Utils.Bitmap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -33,5 +34,27 @@ public class testDB {
     @Test
     public void testWrite() throws IOException, URISyntaxException {
         db.write();
+    }
+
+    @Test
+    public void testBitmap() {
+        Bitmap blockBitmap = new Bitmap(40000);
+
+        blockBitmap.setUsed(0);   // Mark block 0 as used
+        blockBitmap.setUsed(39999); // Mark block 39999 as used
+
+        boolean isUsed = blockBitmap.isUsed(0); // Check if block 0 is used
+        assertEquals(true, isUsed);
+        isUsed = blockBitmap.isUsed(39999); // Check if block 39999 is used
+        assertEquals(true, isUsed);
+        isUsed = blockBitmap.isUsed(1); // Check if block 1 is used
+        assertEquals(false, isUsed);
+
+        blockBitmap.setFree(0); // Mark block 0 as free
+        isUsed = blockBitmap.isUsed(0); // Check if block 0 is used
+        assertEquals(false, isUsed);
+
+        // print the bitmap
+        blockBitmap.print();
     }
 }
