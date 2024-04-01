@@ -209,7 +209,8 @@ public class DB {
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
         RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
 
-        int startingByte = 256 * 3 + 1;
+        // Start after bitmap
+        int startingByte = 256 * 22;
         String dataRow = csvFile.readLine(); // Read first line.
         dataRow = csvFile.readLine(); // Read second line.
         int totalBytes = 256;
@@ -268,11 +269,8 @@ public class DB {
         return "";
     }
 
-    // TODO: Delete - Deletes the given data from the db
+    // TODO: Delete - Deletes FCB
     public void delete(String data) {
-        // TODO: delete the data from the b+tree
-
-        // TODO: delete the records from block and free the space
     }
 
     // TODO: Close - Closes the db connection
