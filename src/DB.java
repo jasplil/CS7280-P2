@@ -22,6 +22,7 @@ public class DB {
     private Block[] blocks;
     String DB_NAME = "MoviesDB";
     BPlusTree tree = new BPlusTree(6);
+    RandomAccessFile raf;
 
     public DB(String filename) {
         DBFile = new File(filename);
@@ -50,7 +51,7 @@ public class DB {
         ReentrantLock lock = new ReentrantLock();
 
         try {
-            RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
+            raf = new RandomAccessFile(DBFile, "rw");
             // Ensure that the database name does not exceed the allocated space
             lock.lock(); // Acquire the lock
             try {
@@ -179,7 +180,7 @@ public class DB {
         long fileSizeInBytes = 0;
         if (file.exists()) {
             fileSizeInBytes = file.length();
-            System.out.println("File size: " + fileSizeInBytes + " bytes");
+//            System.out.println("File size: " + fileSizeInBytes + " bytes");
         } else {
             System.out.println("The inout cvs file does not exist.");
         }
@@ -215,7 +216,7 @@ public class DB {
         dataRow = csvFile.readLine(); // Read second line.
         int totalBytes = 256;
         raf.seek(startingByte);
-        for (int i = 0; i < 6 && dataRow != null; i++) {
+        for (int i = 0; i < 1000 && dataRow != null; i++) {
             int byteLength = dataRow.getBytes().length;
             if (byteLength > 40) {
                 dataRow = truncateString(dataRow);
@@ -228,18 +229,10 @@ public class DB {
             tree.insert(index, startingByte);
             // IMPORTANT: Update startingByte for next write, considering the length of the UTF string (dataRow) and 2 bytes for length
             startingByte += dataRow.getBytes(StandardCharsets.UTF_8).length + 2;
-            System.out.println("Index: " + index+1 + " | Byte: " + startingByte);
             dataRow = csvFile.readLine(); // Read next line of data.
         }
 
-        // TODO: move to writeBTreeToFile
-        // Search the data from the file
-        int numBlocks = (int) Math.ceil(tree.search(6));
-        RandomAccessFile file = new RandomAccessFile(DBFile, "r");
-        System.out.println("Address: " + numBlocks);
-        file.seek(numBlocks);
-        String data = file.readUTF();
-        System.out.println(data);
+        writeBTreeToFile();
     }
 
     public static String truncateString(String str) {
@@ -258,15 +251,17 @@ public class DB {
         return str; // Return the original string if it doesn't exceed the size limit
     }
 
-    // TODO: Write - Writes the btree to the end of file
     // Convert the tree node to byte array
-    public void writeBTreeToFile() {}
+    public void writeBTreeToFile() {
+        tree.writeBPlusTreeToFile(tree, "bplustree.db1");
+    }
 
-    // TODO: Read - Reads the next line of data from the db
-    public String search() {
-        // TODO: search the data from the b+tree
-
-        return "";
+    public String search() throws IOException {
+        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("bplustree.db1");
+        double address = deserializedTree.search(996);
+        raf.seek((int) address);
+        System.out.println(raf.readUTF());
+        return raf.readUTF();
     }
 
     // TODO: Delete - Deletes FCB
