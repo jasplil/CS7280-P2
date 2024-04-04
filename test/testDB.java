@@ -37,6 +37,11 @@ public class testDB {
     }
 
     @Test
+    public void testRead() throws IOException, URISyntaxException {
+        db.search();
+    }
+
+    @Test
     public void testBitmap() {
         Bitmap blockBitmap = new Bitmap(40000);
 
