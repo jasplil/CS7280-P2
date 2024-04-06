@@ -595,49 +595,48 @@ public class BPlusTree implements Serializable {
         }
     }
 
-    public static void writeBPlusTreeToFile(BPlusTree tree, String filePath) {
-        try (FileOutputStream fileOutputStream = new FileOutputStream(filePath);
-             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)) {
-            objectOutputStream.writeObject(tree);
+    public static void writeBPlusTreeToFile(BPlusTree tree, String filePath, int startingByte) {
+        // Use RandomAccessFile for seeking to a specific position before writing
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw")) {
+            // Seek to the specified starting byte
+            randomAccessFile.seek(startingByte);
+
+            // Create a ByteArrayOutputStream to write the object into a byte array first
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+                oos.writeObject(tree);
+                oos.flush();
+
+                // Write the byte array to the file starting at the specified offset
+                randomAccessFile.write(baos.toByteArray());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static BPlusTree readBPlusTreeFromFile(String filePath) {
-        try (FileInputStream fileInputStream = new FileInputStream(filePath);
-             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream)) {
-            return (BPlusTree) objectInputStream.readObject();
-        } catch (IOException | ClassNotFoundException e) {
+    public static BPlusTree readBPlusTreeFromFile(String filePath, int startingByte) {
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "r")) {
+            // Seek to the specified offset
+            randomAccessFile.seek(startingByte);
+            int size = (int) (randomAccessFile.length() - startingByte);
+            System.out.println("Btree size: " + size);
+            // Assuming you do not know the exact size to read, read the rest of the file
+            byte[] bytes = new byte[(int)(randomAccessFile.length() - startingByte)];
+            randomAccessFile.readFully(bytes);
+
+            // Use ByteArrayInputStream with the bytes read to reconstruct the object
+            try (ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+                return (BPlusTree) objectInputStream.readObject();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+                return null;
+            }
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-    }
-
-    public static void main(String[] args) {
-        BPlusTree tree = null;
-        tree = new BPlusTree(6);
-        tree.insert(5, 1);
-        tree.insert(18, 12);
-        tree.insert(8, 36);
-        tree.insert(15, 3);
-        tree.insert(10, 38);
-
-        tree.insert(16, 35);
-        tree.insert(17, 6);
-
-        tree.insert(20, 12);
-
-        String filePath = "bplustree.db1";
-        writeBPlusTreeToFile(tree, filePath);
-        BPlusTree deserializedTree = readBPlusTreeFromFile(filePath);
-
-        deserializedTree.printTree();
-//        if (bpt.search(3) != null) {
-//            System.out.println("Found");
-//        } else {
-//            System.out.println("Not Found");
-//        }
-        ;
     }
 }

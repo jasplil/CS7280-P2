@@ -21,7 +21,7 @@ public class DB {
     private String FILE_NAME = "movies.csv";
     private Block[] blocks;
     String DB_NAME = "MoviesDB";
-    BPlusTree tree = new BPlusTree(6);
+    BPlusTree tree = new BPlusTree(200);
     RandomAccessFile raf;
 
     public DB(String filename) {
@@ -214,9 +214,9 @@ public class DB {
         int startingByte = 256 * 22;
         String dataRow = csvFile.readLine(); // Read first line.
         dataRow = csvFile.readLine(); // Read second line.
-        int totalBytes = 256;
         raf.seek(startingByte);
-        for (int i = 0; i < 1000 && dataRow != null; i++) {
+        // for (int i = 0; i < 2000 && dataRow != null; i++)
+        while (dataRow != null) {
             int byteLength = dataRow.getBytes().length;
             if (byteLength > 40) {
                 dataRow = truncateString(dataRow);
@@ -224,15 +224,15 @@ public class DB {
             raf.writeUTF(dataRow);
             // 1. Toy Story (1995) -> 1, Toy Story (1995)
             int index = Integer.parseInt(dataRow.split(",")[0]);
-            // TODO: write b+tree to file
-            // TODO: convert the tree node to byte array
             tree.insert(index, startingByte);
             // IMPORTANT: Update startingByte for next write, considering the length of the UTF string (dataRow) and 2 bytes for length
             startingByte += dataRow.getBytes(StandardCharsets.UTF_8).length + 2;
             dataRow = csvFile.readLine(); // Read next line of data.
         }
 
-        writeBTreeToFile();
+        int endingByte = startingByte;
+        System.out.println("Ending byte: " + endingByte);
+        writeBTreeToFile(endingByte);
     }
 
     public static String truncateString(String str) {
@@ -252,13 +252,13 @@ public class DB {
     }
 
     // Convert the tree node to byte array
-    public void writeBTreeToFile() {
-        tree.writeBPlusTreeToFile(tree, "bplustree.db1");
+    public void writeBTreeToFile(int startingByte) throws IOException {
+        tree.writeBPlusTreeToFile(tree, "test.db0", startingByte);
     }
 
     public String search() throws IOException {
-        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("bplustree.db1");
-        double address = deserializedTree.search(996);
+        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 394329);
+        double address = deserializedTree.search(121342);
         raf.seek((int) address);
         System.out.println(raf.readUTF());
         return raf.readUTF();
