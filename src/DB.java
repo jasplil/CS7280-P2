@@ -1,7 +1,3 @@
-// TODO: 1. Create a file to store data
-//  2. Use methods in Utils.Block class to allocate and deallocate space
-//  3. Use methods in B+Tree class to store and retrieve data
-
 import Utils.Block;
 
 import javax.management.relation.RelationNotFoundException;
@@ -152,13 +148,13 @@ public class DB {
         raf.writeInt(256 * 19999); // 256 * 3 + 1
         offset += 4;
         raf.seek(offset);
-        
+
         // # number of blocks used: 4 bytes
         raf.writeInt(6); // 6 blocks used, at the very beginning, three blocks are used for metadata, FCB, and bitmap
         // 3 blocks are used for the B+ tree, change it later, this is dummy data
         offset += 4;
         raf.seek(offset);
-        
+
         // starting address of the B+ tree index: 4 bytes
         raf.writeInt(256 * 20000); // 256 * 3 + 1
         offset += 4;
@@ -206,8 +202,8 @@ public class DB {
         raf.write(bitmapBytes);
         offset += bitmapBytes.length; // Now the offset is increased by the size of the bitmap
         raf.seek(offset);
-        System.out.println("Bitmap size: " + bitmapBytes.length);
-        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
+//        System.out.println("Bitmap size: " + bitmapBytes.length);
+//        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
         // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
 
@@ -222,14 +218,13 @@ public class DB {
         String dataRow = csvFile.readLine(); // Read first line.
         dataRow = csvFile.readLine(); // Read second line.
         raf.seek(startingByte);
-//        while (dataRow != null)
-        for (int i = 0; i < 9000 && dataRow != null; i++) {
+
+        while (dataRow != null) {
             int byteLength = dataRow.getBytes().length;
             if (byteLength > 40) {
                 dataRow = truncateString(dataRow);
             }
             raf.writeUTF(dataRow);
-            // 1. Toy Story (1995) -> 1, Toy Story (1995)
             int index = Integer.parseInt(dataRow.split(",")[0]);
             tree.insert(index, startingByte);
             // IMPORTANT: Update startingByte for next write, considering the length of the UTF string (dataRow) and 2 bytes for length
@@ -239,7 +234,7 @@ public class DB {
 
         int endingByte = startingByte;
         System.out.println("Ending byte: " + endingByte);
-        writeBTreeToFile(endingByte);
+        writeBTreeToFile(256 * 20000);
         raf.close();
 
         // TODO: Update the FCB with the ending block
@@ -269,11 +264,28 @@ public class DB {
     }
 
     public String search() throws IOException {
-        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 394329);
-        double address = deserializedTree.search(193609);
+        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 256 * 20000);
+        double address = deserializedTree.search(209171);
         raf.seek((int) address);
-        System.out.println(raf.readUTF());
         return raf.readUTF();
+    }
+
+    /**
+     * This method reads the directory and lists all the .db files in it.
+     */
+    public void getDir() {
+        File directory = new File("."); // Specify the directory path
+        // Get all the files from a directory
+        File[] files = directory.listFiles((dir, name) -> name.endsWith(".db0"));
+
+        if (files != null) {
+            for (File file : files) {
+                // This will print the absolute path of the .db files
+                System.out.println("PFS: " + file.getAbsolutePath());
+            }
+        } else {
+            System.out.println("The directory is empty or it does not exist.");
+        }
     }
 
     // TODO: Delete - Deletes FCB

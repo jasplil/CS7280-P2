@@ -15,10 +15,6 @@ public class testDB {
     public void setUp() throws FileNotFoundException {
         db = new DB("test.db0");
         db.createDB();
-        db = new DB("test.db1");
-        db.createDB();
-        db = new DB("test.db2");
-        db.createDB();
     }
 
     @Test
@@ -42,7 +38,7 @@ public class testDB {
 
     @Test
     public void testRead() throws IOException, URISyntaxException {
-        db.search();
+        System.out.println(db.search());
     }
 
     @Test
@@ -64,6 +60,11 @@ public class testDB {
         assertEquals(false, isUsed);
 
         // print the bitmap
-        blockBitmap.print();
+//        blockBitmap.print();
+    }
+
+    @Test
+    public void testGetDir() throws IOException, URISyntaxException {
+        db.getDir();
     }
 }

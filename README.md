@@ -6,7 +6,6 @@
 - Read data
 - Download data file from NoSQL database
 - Delete data file from NoSQL database
-- Directory listing
 - Kill NoSQL database file
 - Update bitmap after writing data
 - Handle second data file Extent when full
@@ -38,9 +37,6 @@ When reading data, the program will search in the B+tree to find the physical ad
 - [x] Download data file from NoSQL database
 - [x] Kill NoSQL database file
 - [x] Delete data file from NoSQL database file
-
-- [x] Handle second data file Extent when full
-- [x] DIRectory listing
 
 
 
