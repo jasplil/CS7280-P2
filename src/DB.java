@@ -6,7 +6,7 @@ import Utils.Block;
 
 import javax.management.relation.RelationNotFoundException;
 import java.util.*;
-
+import Utils.Bitmap;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -194,19 +194,22 @@ public class DB {
     public void insertBitmap(RandomAccessFile raf, int offset) throws IOException {
         // Seek to the offset position where the bitmap starts
         raf.seek(offset);
-
         // Each bit in the bitmap represents a block, so we need 5,000 bytes for 40,000 blocks
         // But since we want the bitmap to be a multiple of 256 bytes, we round up to 5,120 bytes
-        int bitmapSize = 5120; // This is 20 blocks, each block is 256 bytes
-        byte[] bitmapBytes = new byte[bitmapSize]; // Initialized to all zeroes
+        Bitmap bitmap = new Bitmap(40000); // Initializing the Bitmap to cover 40,000 blocks, assuming we start counting qfrom data block 0
 
-        // Write the bitmap to the file
+        // Convert the Bitmap to a byte array (you need to adjust this method if your actual
+        // usage scenario is different)
+        byte[] bitmapBytes = bitmap.toByteArray(); // This should be the correct size, e.g., 20 bytes
+
+        // Write the byte array to the file
         raf.write(bitmapBytes);
-        offset += bitmapSize;
+        offset += bitmapBytes.length; // Now the offset is increased by the size of the bitmap
         raf.seek(offset);
+        System.out.println("Bitmap size: " + bitmapBytes.length);
+        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
         // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
-
 
     public void write() throws IOException {
         InputStream is = getClass().getResourceAsStream(FILE_NAME);
@@ -237,6 +240,11 @@ public class DB {
         int endingByte = startingByte;
         System.out.println("Ending byte: " + endingByte);
         writeBTreeToFile(endingByte);
+        raf.close();
+
+        // TODO: Update the FCB with the ending block
+        // TODO: update the number of blocks used in the FCB
+        // TODO: update the bitmap with the blocks used
     }
 
     public static String truncateString(String str) {
