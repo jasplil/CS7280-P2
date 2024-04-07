@@ -31,6 +31,9 @@ When writing data, the program will first check if the data file is full. If it 
 ![Design](https://github.com/jasplil/CS7280-P1/assets/39994190/a8a39633-dfce-4837-b643-681620336b97)
 When reading data, the program will search in the B+tree to find the physical address of the data. Then the program will read the data from the data file according to the physical address.
 
+## Database expansion
+When the data file is full, the program will create a new data file and write the data to the new data file. The program will update the bitmap to indicate that the data block is used. Meanwhile, the program will update the B+tree to store the data physical address and the corresponding data file number.
+
 ### TODO
 
 - [x] Update bitmap after writing data

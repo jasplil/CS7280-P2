@@ -202,11 +202,15 @@ public class DB {
         raf.write(bitmapBytes);
         offset += bitmapBytes.length; // Now the offset is increased by the size of the bitmap
         raf.seek(offset);
-//        System.out.println("Bitmap size: " + bitmapBytes.length);
-//        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
+        System.out.println("Bitmap size: " + bitmapBytes.length);
+        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
         // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
 
+    /**
+     * This method reads the csv file and writes the data to the DB file
+     * @throws IOException
+     */
     public void write() throws IOException {
         InputStream is = getClass().getResourceAsStream(FILE_NAME);
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
@@ -242,6 +246,11 @@ public class DB {
         // TODO: update the bitmap with the blocks used
     }
 
+    /**
+     * Truncate a string to fit within a certain byte size.
+     * @param str The string to truncate
+     * @return The truncated string
+     */
     public static String truncateString(String str) {
         byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
         if (strBytes.length > 40) {
@@ -258,11 +267,20 @@ public class DB {
         return str; // Return the original string if it doesn't exceed the size limit
     }
 
-    // Convert the tree node to byte array
+    /**
+     * This method writes the B+ tree to the file.
+     * @param startingByte the starting byte of the B+ tree
+     * @throws IOException
+     */
     public void writeBTreeToFile(int startingByte) throws IOException {
         tree.writeBPlusTreeToFile(tree, "test.db0", startingByte);
     }
 
+    /**
+     * This method reads the B+ tree from the file and searches for a specific key.
+     * @return the value of the key
+     * @throws IOException
+     */
     public String search() throws IOException {
         BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 256 * 20000);
         double address = deserializedTree.search(209171);
@@ -273,6 +291,7 @@ public class DB {
     /**
      * This method reads the directory and lists all the .db files in it.
      */
+    // TODO: add timestamp from FCB
     public void getDir() {
         File directory = new File("."); // Specify the directory path
         // Get all the files from a directory
@@ -293,7 +312,7 @@ public class DB {
     }
 
     // TODO: Close - Closes the db connection
-    public void close() {
-        // Close the file
+    public void close() throws IOException {
+        raf.close();
     }
 }
