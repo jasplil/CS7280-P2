@@ -15,6 +15,10 @@ public class testDB {
     public void setUp() throws FileNotFoundException {
         db = new DB("test.db0");
         db.createDB();
+        db = new DB("test.db1");
+        db.createDB();
+        db = new DB("test.db2");
+        db.createDB();
     }
 
     @Test

@@ -5,14 +5,11 @@
 import Utils.Block;
 
 import javax.management.relation.RelationNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class DB {
@@ -20,6 +17,8 @@ public class DB {
     private int TOTAL_SIZE; // 1 MB
     private String FILE_NAME = "movies.csv";
     private Block[] blocks;
+    HashMap<String, int[]> dataMap = new HashMap<>();
+
     String DB_NAME = "MoviesDB";
     BPlusTree tree = new BPlusTree(200);
     RandomAccessFile raf;
@@ -27,7 +26,6 @@ public class DB {
     public DB(String filename) {
         DBFile = new File(filename);
         TOTAL_SIZE = 1_048_576;
-        // TODO: db extension: db1, db2, db3, ...
         blocks = new Block[300];
 
         try {
@@ -65,6 +63,11 @@ public class DB {
                 // 3rd operation
                 insertBitmap(raf, 256 * 2); // Third operation
                 // bitmap
+
+                // TODO: move the following code to a fcb
+                dataMap.put("test.db0", new int[]{0, 10000});
+                dataMap.put("test.db1", new int[]{10000, 20000});
+                dataMap.put("test.db2", new int[]{20001, 30000});
             } finally {
                 lock.unlock(); // Ensure the lock is always released
             }
@@ -180,7 +183,7 @@ public class DB {
         long fileSizeInBytes = 0;
         if (file.exists()) {
             fileSizeInBytes = file.length();
-//            System.out.println("File size: " + fileSizeInBytes + " bytes");
+            System.out.println("File size: " + fileSizeInBytes + " bytes");
         } else {
             System.out.println("The inout cvs file does not exist.");
         }
@@ -204,10 +207,11 @@ public class DB {
         // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
 
-    //
+
     public void write() throws IOException {
         InputStream is = getClass().getResourceAsStream(FILE_NAME);
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
+        // Check which db file to write to
         RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
 
         // Start after bitmap
@@ -215,8 +219,8 @@ public class DB {
         String dataRow = csvFile.readLine(); // Read first line.
         dataRow = csvFile.readLine(); // Read second line.
         raf.seek(startingByte);
-        // for (int i = 0; i < 2000 && dataRow != null; i++)
-        while (dataRow != null) {
+//        while (dataRow != null)
+        for (int i = 0; i < 9000 && dataRow != null; i++) {
             int byteLength = dataRow.getBytes().length;
             if (byteLength > 40) {
                 dataRow = truncateString(dataRow);
@@ -258,7 +262,7 @@ public class DB {
 
     public String search() throws IOException {
         BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 394329);
-        double address = deserializedTree.search(121342);
+        double address = deserializedTree.search(193609);
         raf.seek((int) address);
         System.out.println(raf.readUTF());
         return raf.readUTF();
