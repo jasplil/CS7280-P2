@@ -1,9 +1,5 @@
-// TODO: 1. Create a file to store data
-//  2. Use methods in Utils.Block class to allocate and deallocate space
-//  3. Use methods in B+Tree class to store and retrieve data
-
-import Utils.Block;
-
+import java.security.Timestamp;
+import java.time.Instant;
 import java.util.*;
 import Utils.Bitmap;
 import java.io.*;
@@ -13,22 +9,24 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.io.FileWriter;
 import java.io.IOException;
 
-
+/**
+ * A simple database class that uses a B+ tree to store data.
+ */
 public class DB {
     private File DBFile;
     private int TOTAL_SIZE; // 1 MB
     private String FILE_NAME = "movies.csv";
-    private Block[] blocks;
-    HashMap<String, int[]> dataMap = new HashMap<>();
 
     String DB_NAME = "MoviesDB";
     BPlusTree tree = new BPlusTree(200);
     RandomAccessFile raf;
 
+    /**
+     * Create a new database file. If the file already exists, do nothing.
+     */
     public DB(String filename) throws FileNotFoundException {
         DBFile = new File(filename);
         TOTAL_SIZE = 1_048_576;
-        blocks = new Block[300];
 
         try {
             // Attempt to create the file
@@ -45,31 +43,21 @@ public class DB {
     }
 
     /**
-     * Create a new database file. If the file already exists, do nothing.
+     * Open the database file and write the metadata.
      */
-    public void createDB() throws FileNotFoundException {
+    public void open() throws FileNotFoundException {
         ReentrantLock lock = new ReentrantLock();
 
         try {
             raf = new RandomAccessFile(DBFile, "rw");
-            // Ensure that the database name does not exceed the allocated space
             lock.lock(); // Acquire the lock
             try {
                 // physical address
                 int offset = 0;
-                // TODO: complete insertMetadata
                 insertMetadata(raf, offset); // First operation
-                // TODO: complete insertFCB method
                 insertFCB(raf, 256);      // Second operation
-                // TODO: complete insertBitmap method
                 // 3rd operation
                 insertBitmap(raf, 256 * 2); // Third operation
-                // bitmap
-
-                // TODO: move the following code to a fcb
-                dataMap.put("test.db0", new int[]{0, 10000});
-                dataMap.put("test.db1", new int[]{10000, 20000});
-                dataMap.put("test.db2", new int[]{20001, 30000});
             } finally {
                 lock.unlock(); // Ensure the lock is always released
             }
@@ -78,6 +66,9 @@ public class DB {
         }
     }
 
+    /**
+     * Insert metadata into the database file.
+     */
     public void insertMetadata(RandomAccessFile raf, int offset) throws IOException {
         // Assuming the offset is 0 at the start.
         // DB_NAME with padding to 50 bytes
@@ -122,7 +113,9 @@ public class DB {
         }
     }
 
-
+    /**
+     * Insert the File Control Block (FCB) into the database file.
+     */
     public void insertFCB(RandomAccessFile raf, int offset) throws IOException {
         raf.seek(offset); // Move to the correct start position, which is 256
 
@@ -141,7 +134,8 @@ public class DB {
         raf.seek(offset);
 
         // Date and time: date and time when the file was uploaded
-        raf.writeUTF("2024-03-22, 23:59:59");
+        Instant timestamp = Instant.now();
+        raf.writeUTF(String.valueOf(timestamp));
         offset += 20; // Date and time
         raf.seek(offset);
 
@@ -178,6 +172,9 @@ public class DB {
         raf.seek(offset); // Now at 256 bytes, ready for the next operation
     }
 
+    /**
+     * Update the number of blocks used and the ending block address in the FCB section.
+     */
     public void update_number_of_blocks_used_and_ending_block(RandomAccessFile raf, int blocksUsed, int EndingBlockAddress) throws IOException {
         int offset = 256 + 50 + 8 + 20 + 4;
         System.out.println("Offset: " + offset);
@@ -188,7 +185,9 @@ public class DB {
         raf.writeInt(blocksUsed);
     }
 
-    // helper method to calculate the input csv file size in bytes
+    /**
+     * Helper method to calculate the input csv file size in bytes.
+     */
     public long calculateFileSize() {
         File file = new File(getClass().getResource("/movies.csv").getFile());
         long fileSizeInBytes = 0;
@@ -201,8 +200,9 @@ public class DB {
         return fileSizeInBytes;
     }
 
-
-    // this is based on the movies_large file records, I want to create around 40,000 blocks to store the data
+    /**
+     * Insert the bitmap into the database file.
+     */
     public void insertBitmap(RandomAccessFile raf, int offset) throws IOException {
         // Seek to the offset position where the bitmap starts
         raf.seek(offset);
@@ -218,12 +218,12 @@ public class DB {
         raf.write(bitmapBytes);
         offset += bitmapBytes.length; // Now the offset is increased by the size of the bitmap
         raf.seek(offset);
-        System.out.println("Bitmap size: " + bitmapBytes.length);
-        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
         // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
 
-    // update the bitmap with the startingblock and endingblock of the data, use BitMap class
+    /**
+     * Update the bitmap after writing data blocks to the file.
+     */
     public void updateBitmapAfterWritingFile(RandomAccessFile raf, int startingBlockUsed, int endingBlockUsed) throws IOException {
         int offset = 256 * 2; // The offset where the bitmap starts in the file
         raf.seek(offset);
@@ -243,52 +243,48 @@ public class DB {
         raf.seek(offset); // Seek back to the start of the bitmap
         raf.write(bitmapBytes);
 
-        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
+//        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
 //        0 in byte form is 00000000 in binary.
 //        -64 in byte form is 11000000 in binary. The first bit in a byte is the sign bit in the two's complement binary representation Java uses for numbers. So, 11000000 represents the decimal number -64.
 //        -1 in byte form is 11111111 in binary, which indicates that all the bits are set to 1 for that byte.
     }
 
-
-    public void write() throws IOException {
+    /**
+     * Write the data from the csv file to the database file.
+     */
+    public void put(String FILE_NAME) throws IOException {
         InputStream is = getClass().getResourceAsStream(FILE_NAME);
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
-        // Check which db file to write to
-        RandomAccessFile raf = new RandomAccessFile(DBFile, "rw");
-
+        RandomAccessFile raf = new RandomAccessFile("test.db0", "rw");
         // Start after bitmap
         int startingByte = 256 * 22;
         String dataRow = csvFile.readLine(); // Read first line.
         dataRow = csvFile.readLine(); // Read second line.
         raf.seek(startingByte);
-//        while (dataRow != null)
-        for (int i = 0; i < 9000 && dataRow != null; i++) {
+
+        while (dataRow != null) {
             int byteLength = dataRow.getBytes().length;
             if (byteLength > 40) {
                 dataRow = truncateString(dataRow);
             }
             raf.writeUTF(dataRow);
-            // 1. Toy Story (1995) -> 1, Toy Story (1995)
             int index = Integer.parseInt(dataRow.split(",")[0]);
             tree.insert(index, startingByte);
             // IMPORTANT: Update startingByte for next write, considering the length of the UTF string (dataRow) and 2 bytes for length
             startingByte += dataRow.getBytes(StandardCharsets.UTF_8).length + 2;
             dataRow = csvFile.readLine(); // Read next line of data.
+
+            if (startingByte > 256 * 20000) {
+                updateBitmapAfterWritingFile(raf, 20000, 20000 * 2);
+            }
         }
 
         int endingByte = startingByte;
-        System.out.println("Ending byte: " + endingByte);
-        writeBTreeToFile(endingByte);
+        writeBTreeToFile(256 * 20000);
 
-
-        // TODO: Update the FCB with the ending block
-        // TODO: update the number of blocks used in the FCB
         int EndingBlocksUsed = (int)Math.ceil(endingByte / 256);
-        System.out.println("Ending block: " + EndingBlocksUsed);
         update_number_of_blocks_used_and_ending_block(raf, EndingBlocksUsed, endingByte);
-        // TODO: update the bitmap with the blocks used
         updateBitmapAfterWritingFile(raf, 22, EndingBlocksUsed);
-        // raf.close();
     }
 
     public static String truncateString(String str) {
@@ -312,11 +308,14 @@ public class DB {
         tree.writeBPlusTreeToFile(tree, "test.db0", startingByte);
     }
 
-    public String search() throws IOException {
-        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 394329);
-        double address = deserializedTree.search(193609);
+    public String find(int searchKey) throws IOException {
+        RandomAccessFile raf = new RandomAccessFile("test.db0", "rw");
+        BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 256 * 20000);
+
+        double address = deserializedTree.search(searchKey);
+        int block = (int)Math.ceil(address / 256);
+        System.out.println("Current block is: " + Math.ceil(block));
         raf.seek((int) address);
-        System.out.println(raf.readUTF());
         return raf.readUTF();
     }
 
@@ -407,4 +406,24 @@ public class DB {
         }
     }
 
+    /**
+     * This method reads the directory and lists all the .db files in it.
+     */
+    public void getDir() throws IOException {
+        RandomAccessFile raf = new RandomAccessFile("test.db0", "r");
+        // TODO: change to correct csv file offset
+        int csvOffset = 256 * 2;
+        raf.seek(csvOffset);
+        System.out.println(raf.readUTF());
+
+        // TODO: change to correct file size offset
+        int fileSizeOffset = 256 * 2 + 40;
+        raf.seek(fileSizeOffset);
+        System.out.println(raf.readInt());
+
+        // TODO: change to correct timestamp offset
+        int timestampOffset = 256 * 2 + 256;
+        raf.seek(timestampOffset);
+        System.out.println(raf.readLong());
+    }
 }

@@ -14,11 +14,11 @@ public class testDB {
     @Before
     public void setUp() throws FileNotFoundException {
         db = new DB("test.db0");
-        db.createDB();
-        db = new DB("test.db1");
-        db.createDB();
-        db = new DB("test.db2");
-        db.createDB();
+    }
+
+    @Test
+    public void testCreateDB() throws FileNotFoundException {
+        db.open();
     }
 
     @Test
@@ -36,13 +36,18 @@ public class testDB {
     }
 
     @Test
-    public void testWrite() throws IOException, URISyntaxException {
-        db.write();
+    public void testPut() throws IOException, URISyntaxException {
+        db.put("movies.csv");
     }
 
     @Test
-    public void testRead() throws IOException, URISyntaxException {
-        db.search();
+    public void testClose() {
+        db.close();
+    }
+
+    @Test
+    public void testFind() throws IOException, URISyntaxException {
+        System.out.println(db.find(15));
     }
 
     @Test
@@ -70,5 +75,10 @@ public class testDB {
     @Test
     public void testWriteCSV() throws IOException, URISyntaxException {
         db.download_csv();
+    }
+
+    @Test
+    public void testGetDir() throws IOException, URISyntaxException {
+        db.getDir();
     }
 }

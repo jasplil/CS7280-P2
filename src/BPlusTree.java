@@ -622,7 +622,7 @@ public class BPlusTree implements Serializable {
             // Seek to the specified offset
             randomAccessFile.seek(startingByte);
             int size = (int) (randomAccessFile.length() - startingByte);
-            System.out.println("Btree size: " + size);
+//            System.out.println("Btree size: " + size);
             // Assuming you do not know the exact size to read, read the rest of the file
             byte[] bytes = new byte[(int)(randomAccessFile.length() - startingByte)];
             randomAccessFile.readFully(bytes);
