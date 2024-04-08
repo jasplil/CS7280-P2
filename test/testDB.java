@@ -13,12 +13,12 @@ public class testDB {
     DB db;
     @Before
     public void setUp() throws FileNotFoundException {
-        db = new DB("test.db0");
+        db = new DB();
     }
 
     @Test
     public void testCreateDB() throws FileNotFoundException {
-        db.open();
+        db.open("test.db0");
     }
 
     @Test

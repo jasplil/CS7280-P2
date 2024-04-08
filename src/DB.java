@@ -1,6 +1,5 @@
-import java.security.Timestamp;
 import java.time.Instant;
-import java.util.*;
+
 import Utils.Bitmap;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -21,11 +20,14 @@ public class DB {
     BPlusTree tree = new BPlusTree(200);
     RandomAccessFile raf;
 
+    public DB() {}
+
     /**
-     * Create a new database file. If the file already exists, do nothing.
+     * Initialize the database file.
+     * Open the database file and write the metadata.
      */
-    public DB(String filename) throws FileNotFoundException {
-        DBFile = new File(filename);
+    public void open(String DB_NAME) throws FileNotFoundException {
+        DBFile = new File(DB_NAME);
         TOTAL_SIZE = 1_048_576;
 
         try {
@@ -40,12 +42,7 @@ public class DB {
         } catch (IOException e) {
             System.err.println("An error occurred while creating the file: " + e.getMessage());
         }
-    }
 
-    /**
-     * Open the database file and write the metadata.
-     */
-    public void open() throws FileNotFoundException {
         ReentrantLock lock = new ReentrantLock();
 
         try {
@@ -193,7 +190,6 @@ public class DB {
         long fileSizeInBytes = 0;
         if (file.exists()) {
             fileSizeInBytes = file.length();
-            System.out.println("File size: " + fileSizeInBytes + " bytes");
         } else {
             System.out.println("The inout cvs file does not exist.");
         }
@@ -253,7 +249,7 @@ public class DB {
      * Write the data from the csv file to the database file.
      */
     public void put(String FILE_NAME) throws IOException {
-        InputStream is = getClass().getResourceAsStream(FILE_NAME);
+        InputStream is = getClass().getClassLoader().getResourceAsStream(FILE_NAME);
         BufferedReader csvFile = new BufferedReader(new InputStreamReader(is));
         RandomAccessFile raf = new RandomAccessFile("test.db0", "rw");
         // Start after bitmap
@@ -371,8 +367,6 @@ public class DB {
         }
     }
 
-    // TODO: DOWNLOAD - Downloads the db file, by reading the datablocks from starting block to ending block and turn it back to csv file
-
     public void download_csv() throws IOException {
         int startingBlock = 256 * 22;  // The block where data starts (from raf = 256 * 22)
         int endingBlock = 256 * 19999; // The block where data ends (to raf = 256 * 19999)
@@ -411,19 +405,38 @@ public class DB {
      */
     public void getDir() throws IOException {
         RandomAccessFile raf = new RandomAccessFile("test.db0", "r");
-        // TODO: change to correct csv file offset
-        int csvOffset = 256 * 2;
+
+        int csvOffset = 256;
         raf.seek(csvOffset);
         System.out.println(raf.readUTF());
 
-        // TODO: change to correct file size offset
-        int fileSizeOffset = 256 * 2 + 40;
+        int fileSizeOffset = 306;
         raf.seek(fileSizeOffset);
         System.out.println(raf.readInt());
 
-        // TODO: change to correct timestamp offset
-        int timestampOffset = 256 * 2 + 256;
+        int timestampOffset = 314;
         raf.seek(timestampOffset);
-        System.out.println(raf.readLong());
+        String timestampString = raf.readUTF();
+        System.out.println(timestampString);
+    }
+
+    public static void main(String[] args) throws IOException {
+        DB db = new DB();
+        switch (args[0].toLowerCase()) {
+            case "open":
+                db.open(args[1]);
+                break;
+            case "put":
+                db.put(args[1]);
+                break;
+            case "find":
+                System.out.println(db.find(Integer.parseInt(args[1])));
+                break;
+            case "dir":
+                db.getDir();
+                break;
+            default:
+                System.out.println("Invalid command.");
+        }
     }
 }

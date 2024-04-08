@@ -13,16 +13,28 @@
 
 ## Key commands
 ```
-cd testDB
+Compile:
+javac DB.java
 
-db.open()
-db.put("movies.csv")
-db.get()
-db.find(key)
+Run:
+Initialize a new database file: 
+java DB open "test.db0"
+
+Write data:
+java DB put movies.csv
+
+Find kv pair:
+java DB find 15
+
+List all files:
+java DB dir
+
+// TODO
+db.downloadFile()
 db.deleteFile()
 db.kill()
 db.close()
-db.getDir()
+
 
 ```
 ## Data persistence
