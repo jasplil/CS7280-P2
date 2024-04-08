@@ -12,6 +12,7 @@
 - Handle second data file Extent when full
 
 ## Key commands
+Add csv file under src folder, then run the following commands:
 ```
 Compile:
 javac DB.java
