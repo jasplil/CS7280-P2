@@ -119,14 +119,14 @@ public class DB {
 
         // File Name with padding to 50 bytes
         raf.writeUTF(FILE_NAME);
-        System.out.println("File name: " + FILE_NAME);
         int bytesForName = 2 + FILE_NAME.length(); // 2 bytes for UTF length
         padWithBytes(raf, 50 - bytesForName);
 
         offset += 50; // Now the offset is increased by the allocated space for DB_NAME
         raf.seek(offset);
         int fileSizeInBytes = calculateFileSize();
-        raf.writeLong(fileSizeInBytes);
+        raf.write(fileSizeInBytes);
+
         offset += 8; // File Size
         raf.seek(offset);
 
@@ -174,7 +174,7 @@ public class DB {
      */
     public void update_number_of_blocks_used_and_ending_block(RandomAccessFile raf, int blocksUsed, int EndingBlockAddress) throws IOException {
         int offset = 256 + 50 + 8 + 20 + 4;
-        System.out.println("Offset: " + offset);
+
         raf.seek(offset);
         raf.writeInt(EndingBlockAddress);
         offset += 4;
@@ -189,9 +189,10 @@ public class DB {
         File file = new File("movies.csv");
         int fileSizeInBytes = 0;
         if (file.exists()) {
+            System.out.println("The input csv file exists.");
             fileSizeInBytes = (int) file.length();
         } else {
-            System.out.println("The inout cvs file does not exist.");
+            System.out.println("The input cvs file does not exist.");
         }
         return fileSizeInBytes;
     }
@@ -306,6 +307,13 @@ public class DB {
 
     public String find(int searchKey) throws IOException {
         RandomAccessFile raf = new RandomAccessFile("test.db0", "rw");
+        // check if FCB is deleted
+        raf.seek(306);
+        if (raf.read() < 1) {
+            System.out.println("File has been deleted");
+            return null;
+        }
+
         BPlusTree deserializedTree = tree.readBPlusTreeFromFile("test.db0", 256 * 20000);
 
         double address = deserializedTree.search(searchKey);
@@ -315,7 +323,9 @@ public class DB {
         return raf.readUTF();
     }
 
-    // TODO: Delete - Deletes FCB
+    /**
+     * Delete a FCB info from the database.
+     */
     public void delete(String FILE_NAME) throws IOException {
         int fcbOffset = 256; // For example, if FCBs start at byte 256
         deleteFile(FILE_NAME, fcbOffset);
@@ -323,36 +333,26 @@ public class DB {
 
     public void deleteFile(String FILE_NAME, int fcbOffset) throws IOException {
         RandomAccessFile raf = new RandomAccessFile(FILE_NAME, "rw");
-        raf.seek(fcbOffset); // Move to the start position of the FCB, which is `fcbOffset`
+        raf.seek(fcbOffset);
 
-        // Overwrite the file name with zeros or blank spaces
-        // Ensure you write enough zeros to cover the length of the FILE_NAME plus the 2 bytes for UTF length prefix
-        int fileNameSizeWithUTFBytes = 2 + FILE_NAME.length();
-        for (int i = 0; i < fileNameSizeWithUTFBytes; i++) {
-            raf.writeByte(0);
-        }
+        byte[] nullBytes = new byte[256]; // Create a byte array filled with 0s
 
-        // You may need to update the number of files in metadata, which you would need to seek to and adjust
-        // Similarly, update the bitmap to free the blocks used by this file
-        // Those implementations will depend on how you've structured your metadata and bitmap
+        raf.seek(fcbOffset); // Move the file pointer to the specified offset
+        raf.write(nullBytes); // Write the null bytes to the file
 
-        // Update the number of files in metadata
-        int metadataOffset = 0; // For example, if metadata starts at byte 0
-        raf.seek(metadataOffset); // Move to the start position of the metadata
+        raf.seek(306);
 
-        int numberOfFiles = raf.readInt(); // Read the number of files
-        raf.seek(metadataOffset); // Move back to the start position of the metadata
-        raf.writeInt(numberOfFiles - 1); // Write the updated number of files
-
-        // Update the bitmap to free the blocks used by this file
+//        // Update the bitmap to free the blocks used by this file
         int bitmapOffset = 256 * 2; // For example, if the bitmap starts at byte 512
         raf.seek(bitmapOffset); // Move to the start position of the bitmap
-        // Read the existing bitmap into a byte array
-        byte[] bitmapBytes = new byte[5120]; // Size should match your bitmap size in the file
-        raf.readFully(bitmapBytes);
-        // TODO：update bitmapBytes to free the blocks used by the file, and the Btree index
-        raf.seek(bitmapOffset); // Move back to the start position of the bitmap
-        raf.write(bitmapBytes); // Write the updated bitmap back to the file
+//        // Read the existing bitmap into a byte array
+//        byte[] bitmapBytes = new byte[5120]; // Size should match your bitmap size in the file
+//        raf.readFully(bitmapBytes);
+//        // TODO：update bitmapBytes to free the blocks used by the file, and the Btree index
+//        raf.seek(bitmapOffset); // Move back to the start position of the bitmap
+//        raf.write(bitmapBytes); // Write the updated bitmap back to the file
+
+        System.out.println("FCB has been deleted successfully.");
     }
 
     public void close(String FILE_NAME) throws FileNotFoundException {
@@ -410,16 +410,16 @@ public class DB {
 
         int csvOffset = 256;
         raf.seek(csvOffset);
-        System.out.println(raf.readUTF());
+        System.out.print("Name: " + raf.readUTF() + " ");
 
         int fileSizeOffset = 306;
         raf.seek(fileSizeOffset);
-        System.out.println(raf.readInt());
+        System.out.print("Size: " + raf.readInt() + " bytes ");
 
         int timestampOffset = 314;
         raf.seek(timestampOffset);
         String timestampString = raf.readUTF();
-        System.out.println(timestampString);
+        System.out.println("Time: " + timestampString);
     }
 
     public static void main(String[] args) throws IOException {
