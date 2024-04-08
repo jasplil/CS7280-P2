@@ -3,6 +3,7 @@ import java.time.Instant;
 import Utils.Bitmap;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 import java.io.FileWriter;
@@ -118,14 +119,13 @@ public class DB {
 
         // File Name with padding to 50 bytes
         raf.writeUTF(FILE_NAME);
+        System.out.println("File name: " + FILE_NAME);
         int bytesForName = 2 + FILE_NAME.length(); // 2 bytes for UTF length
         padWithBytes(raf, 50 - bytesForName);
 
         offset += 50; // Now the offset is increased by the allocated space for DB_NAME
         raf.seek(offset);
-
-        //File Size: fileSizeInBytes
-        long fileSizeInBytes = calculateFileSize();
+        int fileSizeInBytes = calculateFileSize();
         raf.writeLong(fileSizeInBytes);
         offset += 8; // File Size
         raf.seek(offset);
@@ -185,11 +185,11 @@ public class DB {
     /**
      * Helper method to calculate the input csv file size in bytes.
      */
-    public long calculateFileSize() {
-        File file = new File(getClass().getResource("/movies.csv").getFile());
-        long fileSizeInBytes = 0;
+    public int calculateFileSize() {
+        File file = new File("movies.csv");
+        int fileSizeInBytes = 0;
         if (file.exists()) {
-            fileSizeInBytes = file.length();
+            fileSizeInBytes = (int) file.length();
         } else {
             System.out.println("The inout cvs file does not exist.");
         }
@@ -318,10 +318,11 @@ public class DB {
     // TODO: Delete - Deletes FCB
     public void delete(String FILE_NAME) throws IOException {
         int fcbOffset = 256; // For example, if FCBs start at byte 256
-        deleteFile(raf, fcbOffset);
+        deleteFile(FILE_NAME, fcbOffset);
     }
 
-    public void deleteFile(RandomAccessFile raf, int fcbOffset) throws IOException {
+    public void deleteFile(String FILE_NAME, int fcbOffset) throws IOException {
+        RandomAccessFile raf = new RandomAccessFile(FILE_NAME, "rw");
         raf.seek(fcbOffset); // Move to the start position of the FCB, which is `fcbOffset`
 
         // Overwrite the file name with zeros or blank spaces
@@ -338,6 +339,7 @@ public class DB {
         // Update the number of files in metadata
         int metadataOffset = 0; // For example, if metadata starts at byte 0
         raf.seek(metadataOffset); // Move to the start position of the metadata
+
         int numberOfFiles = raf.readInt(); // Read the number of files
         raf.seek(metadataOffset); // Move back to the start position of the metadata
         raf.writeInt(numberOfFiles - 1); // Write the updated number of files
@@ -353,9 +355,8 @@ public class DB {
         raf.write(bitmapBytes); // Write the updated bitmap back to the file
     }
 
-
-    // TODO: Close - Closes the db connection
-    public void close() {
+    public void close(String FILE_NAME) throws FileNotFoundException {
+        RandomAccessFile raf = new RandomAccessFile(FILE_NAME, "rw");
         // Close the file
         try {
             if (raf != null) {
@@ -368,13 +369,14 @@ public class DB {
     }
 
     public void download_csv() throws IOException {
+        RandomAccessFile raf = new RandomAccessFile("test.db0", "r");
         int startingBlock = 256 * 22;  // The block where data starts (from raf = 256 * 22)
         int endingBlock = 256 * 19999; // The block where data ends (to raf = 256 * 19999)
         int recordSize = 40;           // Size of each record in bytes
         int recordsPerBlock = 6;       // Number of records per block
 
         // Path to the output CSV file
-        String outputPath = "test/output_movies.csv"; // Saving the CSV in the 'test' directory
+        String outputPath = "output_movies.csv"; // Saving the CSV in the 'test' directory
 
         // Open a FileWriter to write to a CSV file
         try (FileWriter csvWriter = new FileWriter(outputPath)) {
@@ -434,6 +436,15 @@ public class DB {
                 break;
             case "dir":
                 db.getDir();
+                break;
+            case "delete":
+                db.delete(args[1]);
+                break;
+            case "get":
+                db.download_csv();
+                break;
+            case "close":
+                db.close(args[1]);
                 break;
             default:
                 System.out.println("Invalid command.");

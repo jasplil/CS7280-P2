@@ -14,12 +14,14 @@
 ## Key commands
 Add csv file under src folder, then run the following commands:
 ```
+cd src  // go to src folder
+
 Compile:
 javac DB.java
 
 Run:
 Initialize a new database file: 
-java DB open "test.db0"
+java DB open <DB FILE_NAME>
 
 Write data:
 java DB put movies.csv
@@ -30,13 +32,14 @@ java DB find 15
 List all files:
 java DB dir
 
-// TODO
-db.downloadFile()
-db.deleteFile()
-db.kill()
-db.close()
+Download file:
+java DB get
 
+Delete file:
+java DB delete <DB FILE_NAME>
 
+Close database:
+java DB close <DB FILE_NAME>
 ```
 ## Data persistence
 
