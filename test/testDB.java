@@ -41,8 +41,8 @@ public class testDB {
     }
 
     @Test
-    public void testClose() {
-        db.close();
+    public void testClose() throws FileNotFoundException {
+        db.close("test.db0");
     }
 
     @Test
