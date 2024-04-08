@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URISyntaxException;
+
 import Utils.Bitmap;
 
 import static org.junit.Assert.assertEquals;
@@ -67,9 +68,6 @@ public class testDB {
         blockBitmap.setFree(0); // Mark block 0 as free
         isUsed = blockBitmap.isUsed(0); // Check if block 0 is used
         assertEquals(false, isUsed);
-
-        // print the bitmap
-        blockBitmap.print();
     }
 
     @Test
@@ -80,5 +78,10 @@ public class testDB {
     @Test
     public void testGetDir() throws IOException, URISyntaxException {
         db.getDir();
+    }
+
+    @Test
+    public void testDelete() throws IOException, URISyntaxException {
+        db.delete("movies.csv");
     }
 }
