@@ -4,13 +4,15 @@
 
 import Utils.Block;
 
-import javax.management.relation.RelationNotFoundException;
 import java.util.*;
 import Utils.Bitmap;
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.locks.ReentrantLock;
+
+import java.io.FileWriter;
+import java.io.IOException;
+
 
 public class DB {
     private File DBFile;
@@ -23,7 +25,7 @@ public class DB {
     BPlusTree tree = new BPlusTree(200);
     RandomAccessFile raf;
 
-    public DB(String filename) {
+    public DB(String filename) throws FileNotFoundException {
         DBFile = new File(filename);
         TOTAL_SIZE = 1_048_576;
         blocks = new Block[300];
@@ -164,7 +166,6 @@ public class DB {
         offset += 4;
         raf.seek(offset);
 
-
         // Now, if you want the FCB section to occupy exactly 256 bytes, you'll need to add padding
         int bytesWritten = 94; // Total bytes actually written for FCB data
         int paddingSize = 256 - bytesWritten; // Calculate padding needed to reach 256 bytes
@@ -175,6 +176,16 @@ public class DB {
 
         offset += paddingSize;
         raf.seek(offset); // Now at 256 bytes, ready for the next operation
+    }
+
+    public void update_number_of_blocks_used_and_ending_block(RandomAccessFile raf, int blocksUsed, int EndingBlockAddress) throws IOException {
+        int offset = 256 + 50 + 8 + 20 + 4;
+        System.out.println("Offset: " + offset);
+        raf.seek(offset);
+        raf.writeInt(EndingBlockAddress);
+        offset += 4;
+        raf.seek(offset);
+        raf.writeInt(blocksUsed);
     }
 
     // helper method to calculate the input csv file size in bytes
@@ -189,6 +200,7 @@ public class DB {
         }
         return fileSizeInBytes;
     }
+
 
     // this is based on the movies_large file records, I want to create around 40,000 blocks to store the data
     public void insertBitmap(RandomAccessFile raf, int offset) throws IOException {
@@ -210,6 +222,33 @@ public class DB {
         System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
         // Now the file pointer in 'raf' is at offset + bitmapSize, ready for the next operation
     }
+
+    // update the bitmap with the startingblock and endingblock of the data, use BitMap class
+    public void updateBitmapAfterWritingFile(RandomAccessFile raf, int startingBlockUsed, int endingBlockUsed) throws IOException {
+        int offset = 256 * 2; // The offset where the bitmap starts in the file
+        raf.seek(offset);
+
+        // Read the existing bitmap into a byte array
+        byte[] bitmapBytes = new byte[5120]; // Size should match your bitmap size in the file
+        raf.readFully(bitmapBytes);
+
+        // Update the bitmap for the range of used blocks
+        for (int blockNum = startingBlockUsed; blockNum <= endingBlockUsed; blockNum++) {
+            int byteIndex = blockNum / 8;
+            int bitIndex = blockNum % 8;
+            bitmapBytes[byteIndex] |= (1 << bitIndex); // Set the bit to 1 to mark the block as used
+        }
+
+        // Write the updated bitmap back to the file
+        raf.seek(offset); // Seek back to the start of the bitmap
+        raf.write(bitmapBytes);
+
+        System.out.println("BitmapBytes: " + Arrays.toString(bitmapBytes));
+//        0 in byte form is 00000000 in binary.
+//        -64 in byte form is 11000000 in binary. The first bit in a byte is the sign bit in the two's complement binary representation Java uses for numbers. So, 11000000 represents the decimal number -64.
+//        -1 in byte form is 11111111 in binary, which indicates that all the bits are set to 1 for that byte.
+    }
+
 
     public void write() throws IOException {
         InputStream is = getClass().getResourceAsStream(FILE_NAME);
@@ -240,11 +279,16 @@ public class DB {
         int endingByte = startingByte;
         System.out.println("Ending byte: " + endingByte);
         writeBTreeToFile(endingByte);
-        raf.close();
+
 
         // TODO: Update the FCB with the ending block
         // TODO: update the number of blocks used in the FCB
+        int EndingBlocksUsed = (int)Math.ceil(endingByte / 256);
+        System.out.println("Ending block: " + EndingBlocksUsed);
+        update_number_of_blocks_used_and_ending_block(raf, EndingBlocksUsed, endingByte);
         // TODO: update the bitmap with the blocks used
+        updateBitmapAfterWritingFile(raf, 22, EndingBlocksUsed);
+        // raf.close();
     }
 
     public static String truncateString(String str) {
@@ -277,11 +321,90 @@ public class DB {
     }
 
     // TODO: Delete - Deletes FCB
-    public void delete(String data) {
+    public void delete(String FILE_NAME) throws IOException {
+        int fcbOffset = 256; // For example, if FCBs start at byte 256
+        deleteFile(raf, fcbOffset);
     }
+
+    public void deleteFile(RandomAccessFile raf, int fcbOffset) throws IOException {
+        raf.seek(fcbOffset); // Move to the start position of the FCB, which is `fcbOffset`
+
+        // Overwrite the file name with zeros or blank spaces
+        // Ensure you write enough zeros to cover the length of the FILE_NAME plus the 2 bytes for UTF length prefix
+        int fileNameSizeWithUTFBytes = 2 + FILE_NAME.length();
+        for (int i = 0; i < fileNameSizeWithUTFBytes; i++) {
+            raf.writeByte(0);
+        }
+
+        // You may need to update the number of files in metadata, which you would need to seek to and adjust
+        // Similarly, update the bitmap to free the blocks used by this file
+        // Those implementations will depend on how you've structured your metadata and bitmap
+
+        // Update the number of files in metadata
+        int metadataOffset = 0; // For example, if metadata starts at byte 0
+        raf.seek(metadataOffset); // Move to the start position of the metadata
+        int numberOfFiles = raf.readInt(); // Read the number of files
+        raf.seek(metadataOffset); // Move back to the start position of the metadata
+        raf.writeInt(numberOfFiles - 1); // Write the updated number of files
+
+        // Update the bitmap to free the blocks used by this file
+        int bitmapOffset = 256 * 2; // For example, if the bitmap starts at byte 512
+        raf.seek(bitmapOffset); // Move to the start position of the bitmap
+        // Read the existing bitmap into a byte array
+        byte[] bitmapBytes = new byte[5120]; // Size should match your bitmap size in the file
+        raf.readFully(bitmapBytes);
+        // TODO：update bitmapBytes to free the blocks used by the file, and the Btree index
+        raf.seek(bitmapOffset); // Move back to the start position of the bitmap
+        raf.write(bitmapBytes); // Write the updated bitmap back to the file
+    }
+
 
     // TODO: Close - Closes the db connection
     public void close() {
         // Close the file
+        try {
+            if (raf != null) {
+                raf.close(); // Close the RandomAccessFile stream
+                System.out.println("Database connection closed successfully.");
+            }
+        } catch (IOException e) {
+            System.err.println("An error occurred while closing the database connection: " + e.getMessage());
+        }
     }
+
+    // TODO: DOWNLOAD - Downloads the db file, by reading the datablocks from starting block to ending block and turn it back to csv file
+
+    public void download_csv() throws IOException {
+        int startingBlock = 256 * 22;  // The block where data starts (from raf = 256 * 22)
+        int endingBlock = 256 * 19999; // The block where data ends (to raf = 256 * 19999)
+        int recordSize = 40;           // Size of each record in bytes
+        int recordsPerBlock = 6;       // Number of records per block
+
+        // Path to the output CSV file
+        String outputPath = "test/output_movies.csv"; // Saving the CSV in the 'test' directory
+
+        // Open a FileWriter to write to a CSV file
+        try (FileWriter csvWriter = new FileWriter(outputPath)) {
+            for (int offset = startingBlock; offset <= endingBlock; offset += 256) { // iterate over blocks
+                raf.seek(offset); // Move to the start of the block
+
+                // Read records within the block
+                for (int i = 0; i < recordsPerBlock; i++) {
+                    byte[] recordBytes = new byte[recordSize];
+                    if (raf.getFilePointer() + recordSize > raf.length()) {
+                        // If trying to read past the end of the file, break the loop
+                        break;
+                    }
+                    raf.readFully(recordBytes); // Read a record
+                    String record = new String(recordBytes, StandardCharsets.UTF_8).trim(); // Convert bytes to String
+
+                    // Write the record as a row in the CSV file, assuming records are newline separated
+                    csvWriter.write(record + "\n");
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("An error occurred while writing the CSV file: " + e.getMessage());
+        }
+    }
+
 }

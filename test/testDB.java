@@ -66,4 +66,9 @@ public class testDB {
         // print the bitmap
         blockBitmap.print();
     }
+
+    @Test
+    public void testWriteCSV() throws IOException, URISyntaxException {
+        db.download_csv();
+    }
 }
